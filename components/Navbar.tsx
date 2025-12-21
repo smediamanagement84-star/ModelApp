@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X, Building2, LogOut, Star, ShieldAlert } from 'lucide-react';
 import { CATEGORIES } from '../lib/mockData';
 import { UserRole } from '../App';
+import StudioSignature from './StudioSignature';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -147,6 +148,11 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, userRole, onLo
                 </button>
               </>
             )}
+
+            {/* Studio Signature in Mobile Menu */}
+            <div className="w-full max-w-xs mt-auto">
+               <StudioSignature variant="inline" />
+            </div>
           </div>
         </div>
       )}

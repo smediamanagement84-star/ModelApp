@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X, Search, ShieldAlert, User, Calendar, Mail, Phone, AlertCircle } from 'lucide-react';
+import StudioSignature from '../../components/StudioSignature';
 
 // MOCK PENDING APPLICATIONS
 const MOCK_APPLICATIONS = [
@@ -136,11 +137,16 @@ const AdminDashboard = () => {
             Active Models
           </button>
         </nav>
-        <div className="p-6 border-t border-gray-100">
-           <div className="text-xs text-gray-400">
-              <p>Logged in as:</p>
-              <p className="font-bold text-gray-800 mt-1">admin@modelapp.com</p>
-           </div>
+        
+        {/* Sidebar Footer with GTdevS Signature */}
+        <div className="mt-auto">
+          <div className="p-6 border-t border-gray-100">
+             <div className="text-xs text-gray-400">
+                <p>Logged in as:</p>
+                <p className="font-bold text-gray-800 mt-1">admin@modelapp.com</p>
+             </div>
+          </div>
+          <StudioSignature variant="admin" />
         </div>
       </div>
 

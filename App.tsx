@@ -5,6 +5,7 @@ import ModelSearchPage from './app/models/page';
 import JoinPage from './app/join/page';
 import LoginPage from './app/login/page';
 import AdminDashboard from './app/admin/page';
+import StudioSignature from './components/StudioSignature';
 
 export type UserRole = 'agency' | 'model' | 'admin' | null;
 
@@ -86,16 +87,20 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white relative">
       <Navbar 
         onNavigate={navigate} 
         currentPage={currentPath} 
         userRole={userRole}
         onLogout={handleLogout}
       />
+      
       <main>
         {renderPage()}
       </main>
+      
+      {/* Global Studio Signature - Fixed Position */}
+      <StudioSignature variant="fixed" />
       
       {/* Simple Footer */}
       <footer className="bg-black text-white py-12 px-6">
