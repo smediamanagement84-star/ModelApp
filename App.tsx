@@ -3,13 +3,18 @@ import Navbar from './components/Navbar';
 import HomePage from './app/page';
 import ModelSearchPage from './app/models/page';
 import JoinPage from './app/join/page';
+import LoginPage from './app/login/page';
+import AdminDashboard from './app/admin/page';
+
+export type UserRole = 'agency' | 'model' | 'admin' | null;
 
 const App = () => {
   // Simple router implementation since we can't use Next.js Router in this environment
-  // and we are restricted to a single page application structure.
-  
   const [currentPath, setCurrentPath] = useState('/');
   const [queryParams, setQueryParams] = useState<Record<string, string>>({});
+  
+  // Auth State: Replaced boolean with UserRole
+  const [userRole, setUserRole] = useState<UserRole>(null);
 
   useEffect(() => {
     // Handle initial hash routing
@@ -40,14 +45,41 @@ const App = () => {
     window.location.hash = path;
   };
 
+  const handleLoginSuccess = (role: 'agency' | 'model' | 'admin') => {
+    setUserRole(role);
+    // Redirect based on role
+    if (role === 'agency') {
+      navigate('/models');
+    } else if (role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/'); // Models go to home
+    }
+  };
+
+  const handleLogout = () => {
+    setUserRole(null);
+    navigate('/');
+  };
+
   const renderPage = () => {
     switch (currentPath) {
       case '/':
         return <HomePage onNavigate={navigate} />;
       case '/models':
-        return <ModelSearchPage initialCategory={queryParams.category} />;
+        return (
+          <ModelSearchPage 
+            initialCategory={queryParams.category} 
+            isAgency={userRole === 'agency'}
+            onNavigate={navigate}
+          />
+        );
       case '/join':
         return <JoinPage />;
+      case '/login':
+        return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+      case '/admin':
+        return userRole === 'admin' ? <AdminDashboard /> : <LoginPage onLoginSuccess={handleLoginSuccess} />;
       default:
         return <HomePage onNavigate={navigate} />;
     }
@@ -55,7 +87,12 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Navbar onNavigate={navigate} currentPage={currentPath} />
+      <Navbar 
+        onNavigate={navigate} 
+        currentPage={currentPath} 
+        userRole={userRole}
+        onLogout={handleLogout}
+      />
       <main>
         {renderPage()}
       </main>

@@ -6,10 +6,14 @@ import {
 import { Model } from '../../types';
 import ModelCard from '../../components/ModelCard';
 import ModelDetailsModal from '../../components/ModelDetailsModal';
+import PaymentModal from '../../components/PaymentModal';
+import LoginPromptModal from '../../components/LoginPromptModal';
 import { Filter, X, AlertTriangle, Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
 interface ModelSearchPageProps {
   initialCategory?: string | null;
+  isAgency: boolean;
+  onNavigate: (path: string) => void;
 }
 
 // Collapsible Filter Section Component
@@ -34,12 +38,17 @@ const FilterSection: React.FC<{
   );
 };
 
-const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) => {
+const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory, isAgency, onNavigate }) => {
   const [filteredModels, setFilteredModels] = useState<Model[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   
+  // Payment & Unlock State
+  const [unlockedModelIds, setUnlockedModelIds] = useState<Set<string>>(new Set());
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   // --- FILTER STATE ---
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<string>('featured');
@@ -69,7 +78,7 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) =>
   const [minFollowers, setMinFollowers] = useState<number>(0);
 
   // Logistics
-  const [maxPrice, setMaxPrice] = useState<number>(1000);
+  const [maxPrice, setMaxPrice] = useState<number>(100000);
   const [unionStatus, setUnionStatus] = useState<string>('All');
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -174,8 +183,8 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) =>
 
   // Lock body scroll
   useEffect(() => {
-    document.body.style.overflow = selectedModel ? 'hidden' : 'auto';
-  }, [selectedModel]);
+    document.body.style.overflow = (selectedModel || showPaymentModal || showLoginPrompt) ? 'hidden' : 'auto';
+  }, [selectedModel, showPaymentModal, showLoginPrompt]);
 
   const toggleArrayFilter = (item: string, current: string[], setter: (val: string[]) => void) => {
     if (current.includes(item)) {
@@ -203,7 +212,7 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) =>
     setSelectedHairTexture('All');
     setSelectedVibes([]);
     setMinFollowers(0);
-    setMaxPrice(1000);
+    setMaxPrice(100000);
     setUnionStatus('All');
     setSortOption('featured');
   };
@@ -211,6 +220,33 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) =>
   const toggleNSFW = (checked: boolean) => {
     if (checked) setSelectedCategory('NSFW');
     else if (selectedCategory === 'NSFW') setSelectedCategory('All');
+  };
+
+  const handleModelClick = (model: Model) => {
+    // Agencies can click to see details (and potential lock screen)
+    // Non-logged-in users or models see prompt if they try to access sensitive info
+    // For now, let's allow viewing the card modal, but unlocking is Agency only.
+    if (isAgency) {
+        setSelectedModel(model);
+    } else {
+        // If not an agency, we show the login prompt.
+        // NOTE: If we want models to view other models without unlocking, we'd need to change this logic.
+        // Currently adhering to "Agency Access Required" for deep details.
+        setShowLoginPrompt(true);
+    }
+  };
+
+  // Payment Handlers
+  const handleUnlockRequest = () => {
+    // Keep ModelDetailsModal open, but show Payment Modal on top
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    if (selectedModel) {
+        setUnlockedModelIds(prev => new Set(prev).add(selectedModel.id));
+        setShowPaymentModal(false);
+    }
   };
 
   const tagClass = (isSelected: boolean) => 
@@ -427,9 +463,9 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) =>
           <div className="mb-6">
             <div className="flex justify-between text-xs mb-2">
                <span className="text-gray-900 font-medium">Max Hourly Rate</span>
-               <span className="text-gray-500">${maxPrice}</span>
+               <span className="text-gray-500">NPR {maxPrice.toLocaleString()}</span>
             </div>
-            <input type="range" min="100" max="1000" step="50" value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))} className="w-full h-1 bg-gray-200 appearance-none accent-black cursor-pointer rounded-full"/>
+            <input type="range" min="1000" max="100000" step="5000" value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))} className="w-full h-1 bg-gray-200 appearance-none accent-black cursor-pointer rounded-full"/>
           </div>
           <div>
              <h4 className="text-xs font-bold uppercase tracking-widest mb-3 text-gray-900">Union Status</h4>
@@ -469,173 +505,139 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory }) =>
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Styles */}
-      <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeInUp { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .skeleton-shimmer { background: linear-gradient(90deg, #f7f7f7 0%, #ffffff 50%, #f7f7f7 100%); background-size: 200% 100%; animation: shimmer 3s infinite linear; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
-      `}</style>
+      {/* Mobile Filter Toggle */}
+      <div className="lg:hidden sticky top-20 z-30 bg-white border-b border-gray-100 px-4 py-3 flex justify-between items-center">
+        <button 
+          onClick={() => setIsMobileFiltersOpen(true)}
+          className="flex items-center gap-2 text-xs uppercase tracking-widest font-bold"
+        >
+          <Filter className="w-4 h-4" /> Filters
+        </button>
+        <span className="text-xs text-gray-500">{filteredModels.length} Models</span>
+      </div>
 
-      {/* Details Modal */}
-      {selectedModel && <ModelDetailsModal model={selectedModel} onClose={() => setSelectedModel(null)} />}
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row gap-12">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-12">
           
-          {/* Desktop Sidebar */}
-          <div className="hidden md:block w-72 flex-shrink-0">
-             {/* Header */}
-             <div className="mb-8">
-                <h2 className="font-serif text-3xl mb-6">Filters</h2>
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    value={searchQuery} 
-                    onChange={e => setSearchQuery(e.target.value)} 
-                    placeholder="Search name, tag, city..." 
-                    className="w-full pl-0 pr-8 py-2 border-b border-gray-200 focus:border-black focus:outline-none text-sm bg-transparent transition-colors placeholder-gray-400 group-hover:border-gray-400"
-                  />
-                  <Search className="w-4 h-4 text-gray-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  {searchQuery && (
-                    <button 
-                      onClick={() => setSearchQuery('')} 
-                      className="absolute right-6 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
-                    >
-                      <X className="w-3 h-3 text-gray-500"/>
-                    </button>
-                  )}
+          {/* Sidebar Filters (Desktop) */}
+          <div className="hidden lg:block w-64 flex-shrink-0">
+             <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 custom-scrollbar pb-10">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="font-serif text-xl">Filters</span>
+                  <button onClick={clearFilters} className="text-[10px] uppercase tracking-widest text-gray-400 hover:text-black">
+                    Clear All
+                  </button>
                 </div>
-             </div>
-
-             {/* Sort */}
-             <div className="mb-8">
-                <h4 className="text-xs font-bold uppercase tracking-widest mb-3 text-gray-900">Sort By</h4>
-                <div className="relative">
-                  <select 
-                    value={sortOption} 
-                    onChange={e => setSortOption(e.target.value)} 
-                    className="w-full p-3 text-xs border border-gray-200 bg-white uppercase tracking-widest focus:outline-none focus:border-black appearance-none cursor-pointer hover:border-gray-400 transition-colors"
-                  >
-                    <option value="featured">Featured</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                    <option value="height-asc">Height: Short to Tall</option>
-                    <option value="height-desc">Height: Tall to Short</option>
-                    <option value="age-asc">Age: Young to Old</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-             </div>
-
-             <div className="pr-2 overflow-y-auto max-h-[calc(100vh-350px)] custom-scrollbar">
                 {renderFilterContent()}
              </div>
-
-             <div className="mt-8 pt-6 border-t border-gray-100">
-               <button onClick={clearFilters} className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-black transition-colors w-full text-left">
-                 Reset All Filters
-               </button>
-             </div>
           </div>
 
-          {/* Mobile Header */}
-          <div className="md:hidden mb-6 flex justify-between items-center">
-             <h2 className="font-serif text-2xl">Models</h2>
-             <button onClick={() => setIsMobileFiltersOpen(true)} className="flex items-center gap-2 px-5 py-2.5 bg-black text-white text-xs uppercase tracking-widest">
-               <Filter className="w-3 h-3" /> Filters
-             </button>
-          </div>
-
-          {/* Mobile Filter Drawer */}
+          {/* Mobile Filters Modal */}
           {isMobileFiltersOpen && (
-             <div className="fixed inset-0 z-50 bg-white flex flex-col">
-               <div className="flex justify-between items-center p-6 border-b border-gray-100">
-                 <h3 className="font-serif text-2xl">Filters</h3>
-                 <button onClick={() => setIsMobileFiltersOpen(false)} className="p-2 hover:bg-gray-50 rounded-full transition-colors"><X className="w-6 h-6"/></button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto p-6">
-                 {/* Mobile Search & Sort */}
-                 <div className="mb-8 space-y-6">
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={searchQuery} 
-                        onChange={e => setSearchQuery(e.target.value)} 
-                        placeholder="Search..." 
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 text-sm focus:outline-none focus:border-black rounded-sm"
-                      />
-                      <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-widest mb-2 text-gray-500">Sort By</h4>
-                      <div className="relative">
-                        <select value={sortOption} onChange={e => setSortOption(e.target.value)} className="w-full p-3 text-sm border border-gray-200 bg-white appearance-none rounded-sm">
-                            <option value="featured">Featured</option>
-                            <option value="price-asc">Price: Low to High</option>
-                            <option value="price-desc">Price: High to Low</option>
-                            <option value="age-asc">Age: Young to Old</option>
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
-                    </div>
-                 </div>
-                 
+            <div className="fixed inset-0 z-50 bg-white lg:hidden flex flex-col">
+              <div className="px-4 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
+                 <span className="font-serif text-xl">Filters</span>
+                 <button onClick={() => setIsMobileFiltersOpen(false)}><X className="w-6 h-6" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 pb-24">
                  {renderFilterContent()}
-               </div>
-
-               <div className="p-6 border-t border-gray-100 bg-white space-y-3">
-                 <button onClick={() => setIsMobileFiltersOpen(false)} className="w-full py-4 bg-black text-white uppercase tracking-widest text-xs font-bold">Show {filteredModels.length} Models</button>
-                 <button onClick={clearFilters} className="w-full py-3 text-gray-500 hover:text-black uppercase tracking-widest text-xs">Reset All</button>
-               </div>
-             </div>
+              </div>
+              <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 flex gap-4">
+                 <button onClick={clearFilters} className="flex-1 py-3 border border-gray-200 text-xs uppercase tracking-widest">Clear</button>
+                 <button onClick={() => setIsMobileFiltersOpen(false)} className="flex-1 py-3 bg-black text-white text-xs uppercase tracking-widest">Show {filteredModels.length} Models</button>
+              </div>
+            </div>
           )}
 
-          {/* Results Grid */}
-          <div className="flex-1 min-h-[500px]">
+          {/* Model Grid */}
+          <div className="flex-1">
+             {/* Header & Sort */}
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                <div className="relative w-full sm:w-auto">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                   <input 
+                     type="text" 
+                     placeholder="Search models, tags..." 
+                     value={searchQuery}
+                     onChange={(e) => setSearchQuery(e.target.value)}
+                     className="pl-9 pr-4 py-2 border-b border-gray-200 focus:border-black focus:outline-none bg-transparent w-full sm:w-64 text-sm"
+                   />
+                </div>
+                
+                <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+                   <span className="text-xs text-gray-400 uppercase tracking-widest hidden sm:inline">{filteredModels.length} Models Found</span>
+                   <select 
+                     value={sortOption} 
+                     onChange={(e) => setSortOption(e.target.value)}
+                     className="text-xs uppercase tracking-widest border-none bg-transparent focus:ring-0 cursor-pointer text-right"
+                   >
+                     <option value="featured">Featured</option>
+                     <option value="price-asc">Price: Low to High</option>
+                     <option value="price-desc">Price: High to Low</option>
+                     <option value="height-desc">Height: Tallest</option>
+                     <option value="age-asc">Age: Youngest</option>
+                   </select>
+                </div>
+             </div>
+
+             {/* Grid */}
              {isLoading ? (
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="flex flex-col">
-                      <div className="aspect-[3/4] w-full bg-gray-100 skeleton-shimmer mb-4" />
-                      <div className="h-6 w-3/4 bg-gray-100 skeleton-shimmer mb-2 rounded-sm" />
-                    </div>
-                  ))}
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10 animate-pulse">
+                 {[1,2,3,4,5,6].map(i => (
+                   <div key={i} className="aspect-[3/4] bg-gray-100"></div>
+                 ))}
                </div>
              ) : (
-               <>
-                 <div className="flex justify-between items-end mb-6">
-                   <p className="text-xs text-gray-400 uppercase tracking-widest">{filteredModels.length} Models Found</p>
-                 </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-                   {filteredModels.map((model, index) => (
-                     <div key={model.id} className="animate-fadeInUp" style={{ animationDelay: `${index * 50}ms` }}>
-                       <ModelCard model={model} onClick={() => setSelectedModel(model)} />
-                     </div>
-                   ))}
-                 </div>
-                 {filteredModels.length === 0 && (
-                   <div className="flex flex-col items-center justify-center py-24 text-center">
-                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                        <Search className="w-6 h-6 text-gray-300" />
-                     </div>
-                     <h3 className="font-serif text-xl mb-2">No models found</h3>
-                     <p className="text-gray-400 text-sm max-w-xs mx-auto mb-6">Try adjusting your filters or search terms to find what you're looking for.</p>
-                     <button onClick={clearFilters} className="px-6 py-2 border border-gray-200 text-xs uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
-                       Clear Filters
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10 min-h-[50vh]">
+                 {filteredModels.length > 0 ? (
+                    filteredModels.map(model => (
+                      <ModelCard 
+                        key={model.id} 
+                        model={model} 
+                        onClick={() => handleModelClick(model)}
+                      />
+                    ))
+                 ) : (
+                   <div className="col-span-full py-20 text-center">
+                     <p className="font-serif text-2xl mb-2">No models found</p>
+                     <p className="text-gray-500 text-sm">Try adjusting your filters or search terms.</p>
+                     <button onClick={clearFilters} className="mt-6 text-xs uppercase tracking-widest border-b border-black pb-1 hover:text-gray-600 hover:border-gray-600 transition-colors">
+                       Reset all filters
                      </button>
                    </div>
                  )}
-               </>
+               </div>
              )}
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {selectedModel && (
+        <ModelDetailsModal 
+          model={selectedModel} 
+          isUnlocked={unlockedModelIds.has(selectedModel.id)}
+          onClose={() => setSelectedModel(null)}
+          onUnlockRequest={handleUnlockRequest}
+        />
+      )}
+
+      {showPaymentModal && selectedModel && (
+        <PaymentModal 
+          price={selectedModel.unlockPrice} 
+          modelName={selectedModel.name}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {showLoginPrompt && (
+        <LoginPromptModal 
+          onClose={() => setShowLoginPrompt(false)} 
+          onLogin={() => onNavigate('/login')} 
+        />
+      )}
     </div>
   );
 };

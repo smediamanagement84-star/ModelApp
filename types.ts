@@ -40,6 +40,8 @@ export interface Model {
   stats: ModelStats;
   imageUrl: string;
   price: number; // Hourly rate in USD
+  priceType: 'Fixed' | 'Negotiable';
+  unlockPrice: number; // Fee to view profile
   
   // Demographics
   age: number;
