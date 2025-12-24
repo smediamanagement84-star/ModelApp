@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Eye, EyeOff, ArrowRight, ShieldCheck, Building2, CheckCircle, Star, ShieldAlert } from 'lucide-react';
 import { UserRole } from '../../App';
@@ -38,7 +39,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     // ADMIN LOGIN CHECK
-    if (email === 'admin@modelapp.com' && password === 'admin123') {
+    if (email === 'admin@hiretheglam.com' && password === 'admin123') {
         setTimeout(() => {
             setIsLoading(false);
             onLoginSuccess('admin');
@@ -64,7 +65,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   const fillAdminCredentials = () => {
-      setEmail('admin@modelapp.com');
+      setEmail('admin@hiretheglam.com');
       setPassword('admin123');
   };
 

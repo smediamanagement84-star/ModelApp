@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Menu, X, Building2, LogOut, Star, ShieldAlert } from 'lucide-react';
 import { CATEGORIES } from '../lib/mockData';
@@ -30,7 +31,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, userRole, onLo
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => handleNav('/')}>
             <span className="font-serif text-2xl tracking-widest font-bold text-black">
-              MODEL APP
+              HIRE THE GLAM
             </span>
           </div>
 
@@ -40,7 +41,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, userRole, onLo
               onClick={() => handleNav('/models')}
               className={`text-xs uppercase tracking-widest hover:text-gray-500 transition-colors ${currentPage === '/models' ? 'text-black font-bold' : 'text-gray-800'}`}
             >
-              All Models
+              Discover Talent
             </button>
             {CATEGORIES.slice(0, 5).map((cat) => (
               <button

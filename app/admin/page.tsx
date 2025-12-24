@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Check, X, Search, ShieldAlert, User, Calendar, Mail, Phone, AlertCircle } from 'lucide-react';
 import StudioSignature from '../../components/StudioSignature';
@@ -143,7 +144,7 @@ const AdminDashboard = () => {
           <div className="p-6 border-t border-gray-100">
              <div className="text-xs text-gray-400">
                 <p>Logged in as:</p>
-                <p className="font-bold text-gray-800 mt-1">admin@modelapp.com</p>
+                <p className="font-bold text-gray-800 mt-1">admin@hiretheglam.com</p>
              </div>
           </div>
           <StudioSignature variant="admin" />
@@ -223,7 +224,7 @@ const AdminDashboard = () => {
            </div>
          ) : (
            <div className="bg-white p-12 text-center border border-gray-200 rounded-lg">
-              <p className="text-gray-500">Active Models database management is read-only in this demo.</p>
+              <p className="text-gray-500">Active database management is read-only in this demo.</p>
            </div>
          )}
       </div>

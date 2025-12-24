@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CATEGORIES } from '../lib/mockData';
 import { ArrowRight } from 'lucide-react';
@@ -29,13 +30,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             THE FUTURE<br/>OF FASHION
           </h1>
           <p className="text-white text-sm md:text-base uppercase tracking-[0.3em] mb-10">
-            Premium Modeling Agency
+            Premium Talent Management
           </p>
           <button 
             onClick={() => onNavigate('/models')}
             className="px-10 py-4 bg-white text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors duration-300 border border-white"
           >
-            Discover Models
+            Discover Talent
           </button>
         </div>
       </section>
@@ -89,7 +90,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             "Beauty is not just about appearance. It's about attitude, elegance, and the power to inspire."
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto font-light leading-relaxed">
-            Model App represents the diverse spectrum of beauty in the modern world. From high fashion to commercial, we bridge the gap between extraordinary talent and world-class brands.
+            Hire The Glam represents the diverse spectrum of beauty in the modern world. From high fashion to commercial, we bridge the gap between extraordinary talent and world-class brands.
           </p>
         </div>
       </section>

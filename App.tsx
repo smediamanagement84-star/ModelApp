@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './app/page';
@@ -106,9 +107,9 @@ const App = () => {
       <footer className="bg-black text-white py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
            <div className="mb-6 md:mb-0">
-             <span className="font-serif text-2xl font-bold">MODEL APP</span>
+             <span className="font-serif text-2xl font-bold">HIRE THE GLAM</span>
              <p className="text-gray-400 text-xs mt-2 uppercase tracking-widest">
-               &copy; {new Date().getFullYear()} Model App Agency. All rights reserved.
+               &copy; {new Date().getFullYear()} Hire The Glam Agency. All rights reserved.
              </p>
            </div>
            <div className="flex space-x-6 text-xs uppercase tracking-widest text-gray-400">

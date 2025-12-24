@@ -12,36 +12,42 @@ export type Category =
   | 'Best Agers' 
   | 'Fitness' 
   | 'Influencers' 
-  | 'Promotional'
-  | 'NSFW';
+  | 'Promotional';
+
+export type ProfessionalRole = 'Model' | 'Photographer' | 'Make-up Artist';
 
 export interface ModelStats {
-  bust: number; // cm
-  waist: number; // cm
-  hips: number; // cm
-  eyeColor: string;
-  hairColor: string;
-  shoeSize: number; // EU
+  bust?: number; 
+  waist?: number; 
+  hips?: number; 
+  eyeColor?: string;
+  hairColor?: string;
+  shoeSize?: number; 
   dressSize?: string;
   hairTexture?: string;
+  // Professional specific
+  specialties?: string[];
+  equipment?: string[];
+  styles?: string[];
 }
 
 export interface Social {
   platform: 'Instagram' | 'TikTok' | 'YouTube' | 'Twitch';
   handle: string;
-  followers: number; // Count
+  followers: number; 
 }
 
 export interface Model {
   id: string;
   name: string;
-  category: Category;
-  height: number; // cm
+  role: ProfessionalRole;
+  category?: Category;
+  height?: number; 
   stats: ModelStats;
   imageUrl: string;
-  price: number; // Hourly rate in USD
-  priceType: 'Fixed' | 'Negotiable';
-  unlockPrice: number; // Fee to view profile
+  price: number; 
+  priceType: 'Fixed' | 'Negotiable' | 'Day Rate';
+  unlockPrice: number; 
   
   // Demographics
   age: number;
@@ -51,11 +57,8 @@ export interface Model {
   
   // Professional
   unionStatus?: 'SAG-AFTRA' | 'Equity' | 'Non-Union';
-  tags: string[]; // Vibes
+  tags: string[]; 
   socials?: Social[];
   skills?: string[];
-  
-  // Inclusivity
-  disabilities?: string[];
-  visibleFeatures?: string[];
+  bio?: string;
 }
