@@ -10,7 +10,7 @@ const StudioSignature: React.FC<StudioSignatureProps> = ({ variant = 'fixed' }) 
 
   // Variants for different placements
   const wrapperClasses = isFixed
-    ? "fixed bottom-8 right-8 z-[200] animate-fadeInUp"
+    ? "fixed bottom-8 right-8 z-[200] animate-fadeInUp pointer-events-none"
     : "w-full py-4 transition-all duration-500";
 
   const glassStyle = isFixed

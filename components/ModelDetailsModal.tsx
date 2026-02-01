@@ -8,6 +8,7 @@ interface ModelDetailsModalProps {
   isUnlocked: boolean;
   onClose: () => void;
   onUnlockRequest: () => void;
+  onBookingRequest?: () => void;
 }
 
 const getMockPortfolio = (mainImage: string) => [
@@ -16,7 +17,7 @@ const getMockPortfolio = (mainImage: string) => [
   "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1600&auto=format&fit=crop"
 ];
 
-const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({ model, isUnlocked, onClose, onUnlockRequest }) => {
+const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({ model, isUnlocked, onClose, onUnlockRequest, onBookingRequest }) => {
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -116,8 +117,11 @@ const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({ model, isUnlocked
                         </div>
                         <ChevronRight className="w-4 h-4" />
                      </div>
-                     <button className="w-full bg-black text-white py-4 flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors uppercase tracking-widest text-sm">
-                        <Mail className="w-4 h-4" /> Request Quote
+                     <button
+                       onClick={onBookingRequest}
+                       className="w-full bg-black text-white py-4 flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors uppercase tracking-widest text-sm"
+                     >
+                        <Mail className="w-4 h-4" /> Request Booking
                      </button>
                   </div>
                 )}

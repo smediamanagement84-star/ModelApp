@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CATEGORIES } from '../lib/mockData';
 import { ArrowRight } from 'lucide-react';
@@ -10,20 +9,14 @@ interface HomePageProps {
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
+      {/* Hero Section - Using poster image as background since video may be blocked */}
       <section className="relative h-[90vh] w-full flex items-center justify-center overflow-hidden bg-black">
-        <div className="absolute inset-0 opacity-50">
-          <video 
-            autoPlay 
-            muted 
-            loop 
-            playsInline
-            className="w-full h-full object-cover"
-            poster="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2070&auto=format&fit=crop"
-          >
-            <source src="https://videos.pexels.com/video-files/3205807/3205807-uhd_2560_1440_25fps.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2070&auto=format&fit=crop"
+            alt="Fashion"
+            className="w-full h-full object-cover opacity-50"
+          />
         </div>
         <div className="relative z-10 text-center px-4">
           <h1 className="font-serif text-5xl md:text-7xl lg:text-9xl text-white font-bold tracking-tighter mb-6">
@@ -32,7 +25,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           <p className="text-white text-sm md:text-base uppercase tracking-[0.3em] mb-10">
             Premium Talent Management
           </p>
-          <button 
+          <button
             onClick={() => onNavigate('/models')}
             className="px-10 py-4 bg-white text-black text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-colors duration-300 border border-white"
           >
@@ -45,28 +38,28 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       <section className="py-24 px-4 max-w-7xl mx-auto w-full">
         <div className="flex justify-between items-end mb-12">
           <h2 className="font-serif text-4xl text-black">Featured Categories</h2>
-          <button 
+          <button
             onClick={() => onNavigate('/models')}
             className="hidden md:flex items-center text-xs uppercase tracking-widest hover:text-gray-500"
           >
             View All <ArrowRight className="ml-2 h-4 w-4" />
           </button>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {CATEGORIES.slice(0, 4).map((cat, idx) => (
-            <div 
+            <div
               key={cat}
-              onClick={() => onNavigate(`/models?category=${cat}`)} 
+              onClick={() => onNavigate(`/models?category=${cat}`)}
               className="group cursor-pointer relative h-96 overflow-hidden"
             >
-              <img 
+              <img
                 src={[
                     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop',
                     'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1887&auto=format&fit=crop',
                     'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop',
                     'https://images.unsplash.com/photo-1525151425813-5a4f3f8b3798?q=80&w=1892&auto=format&fit=crop'
-                ][idx]} 
+                ][idx]}
                 alt={cat}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />

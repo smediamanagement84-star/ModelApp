@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { 
-  MODELS, CATEGORIES, EYE_COLORS, HAIR_COLORS, SHOE_SIZES,
-  GENDERS, ETHNICITIES, LOCATIONS, DRESS_SIZES, VIBES, HAIR_TEXTURES,
-  PHOTO_STYLES, MUA_SPECIALTIES
+import {
+  CATEGORIES, PHOTO_STYLES, MUA_SPECIALTIES
 } from '../../lib/mockData';
 import { Model, ProfessionalRole } from '../../types';
 import ModelCard from '../../components/ModelCard';
 import ModelDetailsModal from '../../components/ModelDetailsModal';
 import PaymentModal from '../../components/PaymentModal';
 import LoginPromptModal from '../../components/LoginPromptModal';
-import { Filter, X, AlertTriangle, Search, ChevronDown, ChevronUp, Check, Camera, Palette, Users } from 'lucide-react';
+import BookingModal from '../../components/BookingModal';
+import { useTalents, useUnlockedTalents, useBookingRequests } from '../../lib/hooks';
+import { Search, ChevronDown, ChevronUp, Camera, Palette, Users } from 'lucide-react';
 
 interface ModelSearchPageProps {
   initialCategory?: string | null;
@@ -41,42 +41,26 @@ const FilterSection: React.FC<{
 
 const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory, isAgency, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<ProfessionalRole>('Model');
-  const [filteredModels, setFilteredModels] = useState<Model[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  
-  const [unlockedModelIds, setUnlockedModelIds] = useState<Set<string>>(new Set());
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState<string>('featured');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'All');
 
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      let result = MODELS.filter(m => m.role === activeTab);
+  // Use hooks for data fetching
+  const { talents: filteredModels, loading: isLoading } = useTalents({
+    role: activeTab,
+    category: activeTab === 'Model' ? selectedCategory : undefined,
+    search: searchQuery || undefined,
+  });
 
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        result = result.filter(m => 
-          m.name.toLowerCase().includes(q) || 
-          m.tags?.some(t => t.toLowerCase().includes(q))
-        );
-      }
-
-      if (activeTab === 'Model' && selectedCategory !== 'All') {
-        result = result.filter(m => m.category === selectedCategory);
-      }
-
-      setFilteredModels(result);
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [activeTab, searchQuery, selectedCategory, sortOption]);
+  // Use unlock hook for persistent state
+  const { isUnlocked, unlockTalent, loading: unlockLoading } = useUnlockedTalents();
+  const { createBookingRequest } = useBookingRequests();
 
   const handleModelClick = (model: Model) => {
     if (isAgency) setSelectedModel(model);
@@ -196,22 +180,47 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory, isAg
       </div>
 
       {selectedModel && (
-        <ModelDetailsModal 
-          model={selectedModel} 
-          isUnlocked={unlockedModelIds.has(selectedModel.id)}
+        <ModelDetailsModal
+          model={selectedModel}
+          isUnlocked={isUnlocked(selectedModel.id)}
           onClose={() => setSelectedModel(null)}
           onUnlockRequest={() => setShowPaymentModal(true)}
+          onBookingRequest={() => setShowBookingModal(true)}
         />
       )}
 
       {showPaymentModal && selectedModel && (
-        <PaymentModal 
-          price={selectedModel.unlockPrice} 
+        <PaymentModal
+          price={selectedModel.unlockPrice}
           modelName={selectedModel.name}
           onClose={() => setShowPaymentModal(false)}
-          onSuccess={() => {
-            setUnlockedModelIds(prev => new Set(prev).add(selectedModel.id));
+          onSuccess={async () => {
+            await unlockTalent(selectedModel.id, selectedModel.unlockPrice);
             setShowPaymentModal(false);
+          }}
+        />
+      )}
+
+      {showBookingModal && selectedModel && (
+        <BookingModal
+          talent={selectedModel}
+          onClose={() => setShowBookingModal(false)}
+          onSubmit={async (data) => {
+            const result = await createBookingRequest(
+              selectedModel.id,
+              selectedModel.name,
+              data.projectName,
+              data.description,
+              data.shootDate,
+              data.durationDays,
+              data.budget
+            );
+            if (result.success) {
+              setShowBookingModal(false);
+              alert('Booking request sent successfully!');
+            } else {
+              alert(result.error || 'Failed to send booking request');
+            }
           }}
         />
       )}

@@ -1,89 +1,93 @@
-
-import React, { useState } from 'react';
-import { Check, X, Search, ShieldAlert, User, Calendar, Mail, Phone, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, X, Search, ShieldAlert, User, Calendar, Mail, Phone, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import StudioSignature from '../../components/StudioSignature';
+import { useApplications } from '../../lib/hooks/useApplications';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import type { Application } from '../../lib/database.types';
 
-// MOCK PENDING APPLICATIONS
-const MOCK_APPLICATIONS = [
-  {
-    id: 'app_001',
-    firstName: 'Sienna',
-    lastName: 'Brooks',
-    email: 'sienna.b@example.com',
-    phone: '+1 (555) 123-4567',
-    dob: '1999-05-15',
-    gender: 'Female',
-    nationality: 'Canadian',
-    city: 'Toronto',
-    height: 177,
-    bust: 85,
-    waist: 60,
-    hips: 90,
-    shoeSize: 39,
-    hairColor: 'Blonde',
-    eyeColor: 'Blue',
-    ethnicity: 'White',
-    submittedAt: '2024-03-10T10:30:00',
-    photos: {
-      headshot: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1888&auto=format&fit=crop',
-      fullBody: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop'
-    }
+// Transform Application to display format
+interface DisplayApplication {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dob: string;
+  gender: string;
+  nationality: string;
+  city: string;
+  height: number | null;
+  ethnicity: string | null;
+  specialties: string[] | null;
+  bio: string | null;
+  professionalRole: string;
+  submittedAt: string;
+  photos: {
+    headshot: string;
+    fullBody: string | null;
+  };
+  // Measurements
+  bust: number | null;
+  waist: number | null;
+  hips: number | null;
+  shoeSize: string | null;
+  hairColor: string | null;
+  eyeColor: string | null;
+}
+
+const transformApplication = (app: Application): DisplayApplication => ({
+  id: app.id,
+  firstName: app.first_name,
+  lastName: app.last_name,
+  email: app.email,
+  phone: app.phone,
+  dob: app.dob || '',
+  gender: app.gender || 'Not specified',
+  nationality: app.nationality || 'Not specified',
+  city: app.city || 'Not specified',
+  height: app.height,
+  ethnicity: app.ethnicity,
+  specialties: app.specialties,
+  bio: app.bio,
+  professionalRole: app.professional_role,
+  submittedAt: app.created_at,
+  photos: {
+    headshot: app.headshot_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop',
+    fullBody: app.portfolio_urls?.[0] || null
   },
-  {
-    id: 'app_002',
-    firstName: 'Kai',
-    lastName: 'Tanaka',
-    email: 'kai.t@example.com',
-    phone: '+81 90-1234-5678',
-    dob: '2001-11-20',
-    gender: 'Male',
-    nationality: 'Japanese',
-    city: 'Tokyo',
-    height: 185,
-    bust: 98,
-    waist: 75,
-    hips: 92,
-    shoeSize: 43,
-    hairColor: 'Black',
-    eyeColor: 'Brown',
-    ethnicity: 'East Asian',
-    submittedAt: '2024-03-11T14:15:00',
-    photos: {
-      headshot: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1887&auto=format&fit=crop',
-      fullBody: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=2048&auto=format&fit=crop'
-    }
-  },
-  {
-    id: 'app_003',
-    firstName: 'Zara',
-    lastName: 'Mendez',
-    email: 'zara.m@example.com',
-    phone: '+34 600 000 000',
-    dob: '2000-02-14',
-    gender: 'Female',
-    nationality: 'Spanish',
-    city: 'Barcelona',
-    height: 172,
-    bust: 88,
-    waist: 62,
-    hips: 93,
-    shoeSize: 38,
-    hairColor: 'Brunette',
-    eyeColor: 'Hazel',
-    ethnicity: 'Latinx',
-    submittedAt: '2024-03-12T09:45:00',
-    photos: {
-      headshot: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1964&auto=format&fit=crop',
-      fullBody: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1887&auto=format&fit=crop'
-    }
-  }
-];
+  // These fields are collected later during talent onboarding
+  bust: null,
+  waist: null,
+  hips: null,
+  shoeSize: null,
+  hairColor: null,
+  eyeColor: null,
+});
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending');
-  const [applications, setApplications] = useState(MOCK_APPLICATIONS);
-  const [selectedApp, setSelectedApp] = useState<typeof MOCK_APPLICATIONS[0] | null>(null);
+  const [selectedApp, setSelectedApp] = useState<DisplayApplication | null>(null);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Fetch applications from Supabase
+  const { applications: rawApplications, loading, error, refetch, updateStatus } = useApplications('pending');
+
+  // Transform applications to display format
+  const applications = rawApplications.map(transformApplication);
+
+  // Filter by search
+  const filteredApplications = applications.filter(app => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      app.firstName.toLowerCase().includes(q) ||
+      app.lastName.toLowerCase().includes(q) ||
+      app.email.toLowerCase().includes(q) ||
+      app.city.toLowerCase().includes(q)
+    );
+  });
 
   const calculateAge = (dob: string) => {
     const today = new Date();
@@ -101,16 +105,74 @@ const AdminDashboard = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleApprove = (id: string) => {
-    setApplications(prev => prev.filter(app => app.id !== id));
-    setSelectedApp(null);
-    showNotification('Application verified and model profile created successfully.', 'success');
+  const handleApprove = async (id: string) => {
+    if (!selectedApp) return;
+    setIsProcessing(true);
+
+    try {
+      // First, create talent profile from application
+      if (isSupabaseConfigured()) {
+        const app = rawApplications.find(a => a.id === id);
+        if (app) {
+          // Insert into talents table
+          const { error: talentError } = await supabase.from('talents').insert({
+            name: `${app.first_name} ${app.last_name}`,
+            role: app.professional_role,
+            category: app.professional_role === 'Model' ? 'New Faces' : null,
+            image_url: app.headshot_url,
+            price: 25000,
+            price_type: 'Negotiable',
+            unlock_price: 2500,
+            age: app.dob ? new Date().getFullYear() - new Date(app.dob).getFullYear() : null,
+            gender: app.gender,
+            ethnicity: app.ethnicity ? [app.ethnicity] : null,
+            location: app.city,
+            tags: app.specialties || [],
+            bio: app.bio,
+          } as never);
+
+          if (talentError) {
+            console.error('Error creating talent:', talentError);
+            showNotification('Error creating talent profile: ' + talentError.message, 'error');
+            setIsProcessing(false);
+            return;
+          }
+        }
+      }
+
+      // Update application status to approved
+      const result = await updateStatus(id, 'approved');
+
+      if (result.success) {
+        setSelectedApp(null);
+        showNotification('Application approved and talent profile created successfully!', 'success');
+      } else {
+        showNotification(result.error || 'Failed to update status', 'error');
+      }
+    } catch (err) {
+      showNotification('An error occurred during approval', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleReject = (id: string) => {
-    setApplications(prev => prev.filter(app => app.id !== id));
-    setSelectedApp(null);
-    showNotification('Application rejected.', 'error');
+  const handleReject = async (id: string) => {
+    setIsProcessing(true);
+
+    try {
+      const result = await updateStatus(id, 'rejected');
+
+      if (result.success) {
+        setSelectedApp(null);
+        showNotification('Application rejected.', 'error');
+      } else {
+        showNotification(result.error || 'Failed to reject application', 'error');
+      }
+    } catch (err) {
+      showNotification('An error occurred', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -129,7 +191,7 @@ const AdminDashboard = () => {
             className={`w-full text-left px-4 py-3 text-sm font-medium rounded-md transition-colors ${activeTab === 'pending' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             Pending Applications
-            <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{applications.length}</span>
+            <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{filteredApplications.length}</span>
           </button>
           <button 
             onClick={() => setActiveTab('active')}
@@ -162,9 +224,25 @@ const AdminDashboard = () => {
          )}
 
          <div className="flex justify-between items-center mb-8">
-            <h2 className="font-serif text-3xl">{activeTab === 'pending' ? 'New Applications' : 'Active Database'}</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="font-serif text-3xl">{activeTab === 'pending' ? 'New Applications' : 'Active Database'}</h2>
+              <button
+                onClick={() => refetch()}
+                disabled={loading}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className={`w-4 h-4 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
             <div className="relative">
-               <input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black w-64" />
+               <input
+                 type="text"
+                 placeholder="Search..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black w-64"
+               />
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             </div>
          </div>
@@ -182,7 +260,15 @@ const AdminDashboard = () => {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {applications.map((app) => (
+                  {loading && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+                        <p className="text-gray-400 mt-2">Loading applications...</p>
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && filteredApplications.map((app) => (
                     <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                        <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
@@ -212,10 +298,10 @@ const AdminDashboard = () => {
                        </td>
                     </tr>
                   ))}
-                  {applications.length === 0 && (
+                  {!loading && filteredApplications.length === 0 && (
                      <tr>
                         <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-                           No pending applications found.
+                           {searchQuery ? 'No applications match your search.' : 'No pending applications found.'}
                         </td>
                      </tr>
                   )}
@@ -240,9 +326,11 @@ const AdminDashboard = () => {
                   <div className="aspect-[3/4] bg-gray-200 rounded overflow-hidden">
                      <img src={selectedApp.photos.headshot} className="w-full h-full object-cover" alt="Headshot" />
                   </div>
-                  <div className="aspect-[3/4] bg-gray-200 rounded overflow-hidden">
-                     <img src={selectedApp.photos.fullBody} className="w-full h-full object-cover" alt="Full Body" />
-                  </div>
+                  {selectedApp.photos.fullBody && (
+                    <div className="aspect-[3/4] bg-gray-200 rounded overflow-hidden">
+                       <img src={selectedApp.photos.fullBody} className="w-full h-full object-cover" alt="Full Body" />
+                    </div>
+                  )}
               </div>
               
               {/* Right: Data */}
@@ -276,30 +364,36 @@ const AdminDashboard = () => {
                     <div>
                         <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 border-b border-gray-100 pb-2 mb-3">Measurements</h3>
                         <div className="grid grid-cols-3 gap-y-4 text-sm">
-                           <div><span className="text-gray-400 text-xs block">Height</span>{selectedApp.height}cm</div>
-                           <div><span className="text-gray-400 text-xs block">Bust</span>{selectedApp.bust}cm</div>
-                           <div><span className="text-gray-400 text-xs block">Waist</span>{selectedApp.waist}cm</div>
-                           <div><span className="text-gray-400 text-xs block">Hips</span>{selectedApp.hips}cm</div>
-                           <div><span className="text-gray-400 text-xs block">Shoe</span>{selectedApp.shoeSize}</div>
-                           <div><span className="text-gray-400 text-xs block">Hair</span>{selectedApp.hairColor}</div>
-                           <div><span className="text-gray-400 text-xs block">Eyes</span>{selectedApp.eyeColor}</div>
-                           <div><span className="text-gray-400 text-xs block">Ethnicity</span>{selectedApp.ethnicity}</div>
+                           <div><span className="text-gray-400 text-xs block">Height</span>{selectedApp.height ? `${selectedApp.height}cm` : 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Bust</span>{selectedApp.bust ? `${selectedApp.bust}cm` : 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Waist</span>{selectedApp.waist ? `${selectedApp.waist}cm` : 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Hips</span>{selectedApp.hips ? `${selectedApp.hips}cm` : 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Shoe</span>{selectedApp.shoeSize || 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Hair</span>{selectedApp.hairColor || 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Eyes</span>{selectedApp.eyeColor || 'N/A'}</div>
+                           <div><span className="text-gray-400 text-xs block">Ethnicity</span>{selectedApp.ethnicity || 'N/A'}</div>
                         </div>
                     </div>
                  </div>
 
                  <div className="mt-8 pt-6 border-t border-gray-100 flex gap-4">
-                    <button 
+                    <button
                        onClick={() => handleReject(selectedApp.id)}
-                       className="flex-1 py-3 border border-red-200 text-red-600 text-xs uppercase tracking-widest font-bold hover:bg-red-50 transition-colors"
+                       disabled={isProcessing}
+                       className="flex-1 py-3 border border-red-200 text-red-600 text-xs uppercase tracking-widest font-bold hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                       Reject
+                       {isProcessing ? 'Processing...' : 'Reject'}
                     </button>
-                    <button 
+                    <button
                        onClick={() => handleApprove(selectedApp.id)}
-                       className="flex-[2] py-3 bg-black text-white text-xs uppercase tracking-widest font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                       disabled={isProcessing}
+                       className="flex-[2] py-3 bg-black text-white text-xs uppercase tracking-widest font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                       <Check className="w-4 h-4" /> Verify & Approve
+                       {isProcessing ? (
+                         <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                       ) : (
+                         <><Check className="w-4 h-4" /> Verify & Approve</>
+                       )}
                     </button>
                  </div>
               </div>

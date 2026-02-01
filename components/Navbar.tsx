@@ -57,10 +57,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, userRole, onLo
 
             {isLoggedIn ? (
               <div className="flex items-center gap-6">
-                <span className={`flex items-center gap-2 text-xs uppercase tracking-widest text-black font-bold border px-3 py-1.5 rounded-full ${isAdmin ? 'border-red-600 bg-red-600 text-white' : isAgency ? 'border-gray-200 bg-gray-50' : 'border-black bg-black text-white'}`}>
+                <button
+                  onClick={() => handleNav(isAdmin ? '/admin' : isAgency ? '/models' : '/dashboard')}
+                  className={`flex items-center gap-2 text-xs uppercase tracking-widest text-black font-bold border px-3 py-1.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${isAdmin ? 'border-red-600 bg-red-600 text-white' : isAgency ? 'border-gray-200 bg-gray-50' : 'border-black bg-black text-white'}`}
+                >
                   {isAdmin ? <ShieldAlert className="w-3 h-3" /> : (isAgency ? <Building2 className="w-3 h-3" /> : <Star className="w-3 h-3" />)}
-                  {isAdmin ? 'Admin' : (isAgency ? 'Agency' : 'My Portfolio')}
-                </span>
+                  {isAdmin ? 'Admin Panel' : (isAgency ? 'Agency' : 'My Portfolio')}
+                </button>
                 <button
                   onClick={onLogout}
                   className="flex items-center gap-2 text-xs uppercase tracking-widest text-gray-500 hover:text-red-600 transition-colors"

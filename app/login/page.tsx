@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
-import { Eye, EyeOff, ArrowRight, ShieldCheck, Building2, CheckCircle, Star, ShieldAlert } from 'lucide-react';
-import { UserRole } from '../../App';
+import { Eye, EyeOff, ArrowRight, ShieldCheck, Building2, CheckCircle, Star } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 interface LoginPageProps {
-  onLoginSuccess: (role: UserRole) => void;
+  onLoginSuccess: (role: 'agency' | 'model' | 'admin') => void;
 }
 
 const GoogleIcon = () => (
@@ -33,49 +32,118 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // ADMIN LOGIN CHECK
-    if (email === 'admin@hiretheglam.com' && password === 'admin123') {
-        setTimeout(() => {
-            setIsLoading(false);
-            onLoginSuccess('admin');
-        }, 1000);
+    try {
+      if (!email || !password) {
+        setError('Please enter both email and password.');
+        setIsLoading(false);
         return;
-    }
-
-    // Simulate API Auth
-    setTimeout(() => {
-      if (email && password) {
-        if (activeTab === 'agency' && isSignUp && (!agencyName || !fullName)) {
-             setIsLoading(false);
-             setError('Please complete all agency details.');
-             return;
-        }
-        setIsLoading(false);
-        onLoginSuccess(activeTab);
-      } else {
-        setIsLoading(false);
-        setError('Invalid credentials provided.');
       }
-    }, 1500);
-  };
 
-  const fillAdminCredentials = () => {
-      setEmail('admin@hiretheglam.com');
-      setPassword('admin123');
-  };
-
-  const handleGoogleAuth = () => {
-    setIsLoading(true);
-    // Simulate Google Popup Flow
-    setTimeout(() => {
+      if (activeTab === 'agency' && isSignUp && (!agencyName || !fullName)) {
+        setError('Please complete all agency details.');
         setIsLoading(false);
+        return;
+      }
+
+      if (!isSupabaseConfigured()) {
+        // Demo mode - simulate login
+        await new Promise(resolve => setTimeout(resolve, 1000));
         onLoginSuccess(activeTab);
-    }, 2000);
+        return;
+      }
+
+      if (isSignUp) {
+        // Sign up with Supabase
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              role: activeTab,
+              agency_name: activeTab === 'agency' ? agencyName : undefined,
+              full_name: fullName || undefined,
+            },
+          },
+        });
+
+        if (signUpError) {
+          setError(signUpError.message);
+          return;
+        }
+
+        if (data.user) {
+          // Check if email confirmation is required
+          if (data.user.identities?.length === 0) {
+            setError('This email is already registered. Please log in instead.');
+            return;
+          }
+          setError('Please check your email to confirm your account.');
+          return;
+        }
+      } else {
+        // Sign in with Supabase
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          setError(signInError.message);
+          return;
+        }
+
+        if (data.user) {
+          // Get user role from metadata
+          const userRole = data.user.user_metadata?.role || activeTab;
+          onLoginSuccess(userRole as 'agency' | 'model' | 'admin');
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      if (!isSupabaseConfigured()) {
+        // Demo mode - simulate login
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        onLoginSuccess(activeTab);
+        return;
+      }
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/#/models`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message);
+        setIsLoading(false);
+      }
+      // If successful, the page will redirect to Google
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google authentication failed.';
+      setError(message);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -261,16 +329,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
            </form>
            
            <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col items-center gap-4">
-               <button 
+               <button
                   onClick={() => {
                      if (activeTab === 'model') {
                         // Redirect to /join page if they want to sign up as a model
                         if (!isSignUp) window.location.hash = '/join';
                         else setIsSignUp(false); // Toggle back to login
                      } else {
-                        setIsSignUp(!isSignUp); 
+                        setIsSignUp(!isSignUp);
                      }
-                     setError(''); 
+                     setError('');
                   }}
                   className="text-sm text-gray-600 hover:text-black underline-offset-4 hover:underline transition-all"
                >
@@ -278,11 +346,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     ? (isSignUp ? "Already have an account? Log In" : "Don't have an account? Apply for Access")
                     : (isSignUp ? "Already have an account? Log In" : "Don't have a portfolio? Apply to Join")
                   }
-               </button>
-               
-               {/* Admin Helper Link */}
-               <button onClick={fillAdminCredentials} className="text-[10px] uppercase tracking-widest text-gray-300 hover:text-red-500 transition-colors flex items-center gap-1">
-                 <ShieldAlert className="w-3 h-3" /> Admin Portal
                </button>
            </div>
         </div>

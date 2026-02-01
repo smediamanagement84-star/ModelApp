@@ -1,12 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './app/page';
 import ModelSearchPage from './app/models/page';
 import JoinPage from './app/join/page';
 import LoginPage from './app/login/page';
 import AdminDashboard from './app/admin/page';
+import ModelDashboard from './app/dashboard/page';
 import StudioSignature from './components/StudioSignature';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export type UserRole = 'agency' | 'model' | 'admin' | null;
 
@@ -54,8 +57,10 @@ const App = () => {
       navigate('/models');
     } else if (role === 'admin') {
       navigate('/admin');
+    } else if (role === 'model') {
+      navigate('/dashboard');
     } else {
-      navigate('/'); // Models go to home
+      navigate('/');
     }
   };
 
@@ -82,44 +87,50 @@ const App = () => {
         return <LoginPage onLoginSuccess={handleLoginSuccess} />;
       case '/admin':
         return userRole === 'admin' ? <AdminDashboard /> : <LoginPage onLoginSuccess={handleLoginSuccess} />;
+      case '/dashboard':
+        return userRole === 'model' ? <ModelDashboard /> : <LoginPage onLoginSuccess={handleLoginSuccess} />;
       default:
         return <HomePage onNavigate={navigate} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white relative">
-      <Navbar 
-        onNavigate={navigate} 
-        currentPage={currentPath} 
-        userRole={userRole}
-        onLogout={handleLogout}
-      />
-      
-      <main>
-        {renderPage()}
-      </main>
-      
-      {/* Global Studio Signature - Fixed Position */}
-      <StudioSignature variant="fixed" />
-      
-      {/* Simple Footer */}
-      <footer className="bg-black text-white py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
-           <div className="mb-6 md:mb-0">
-             <span className="font-serif text-2xl font-bold">HIRE THE GLAM</span>
-             <p className="text-gray-400 text-xs mt-2 uppercase tracking-widest">
-               &copy; {new Date().getFullYear()} Hire The Glam Agency. All rights reserved.
-             </p>
-           </div>
-           <div className="flex space-x-6 text-xs uppercase tracking-widest text-gray-400">
-             <a href="#" className="hover:text-white">Instagram</a>
-             <a href="#" className="hover:text-white">Facebook</a>
-             <a href="#" className="hover:text-white">Email Us</a>
-           </div>
-        </div>
-      </footer>
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white relative">
+        <Navbar
+          onNavigate={navigate}
+          currentPage={currentPath}
+          userRole={userRole}
+          onLogout={handleLogout}
+        />
+
+        <main>
+          <Suspense fallback={<LoadingSpinner fullScreen text="Loading..." />}>
+            {renderPage()}
+          </Suspense>
+        </main>
+
+        {/* Global Studio Signature - Fixed Position */}
+        <StudioSignature variant="fixed" />
+
+        {/* Footer */}
+        <footer className="bg-black text-white py-12 px-6">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-6 md:mb-0">
+              <span className="font-serif text-2xl font-bold">HIRE THE GLAM</span>
+              <p className="text-gray-400 text-xs mt-2 uppercase tracking-widest">
+                &copy; {new Date().getFullYear()} Hire The Glam Agency. All rights reserved.
+              </p>
+            </div>
+            <div className="flex space-x-6 text-xs uppercase tracking-widest text-gray-400">
+              <a href="#" className="hover:text-white transition-colors">Instagram</a>
+              <a href="#" className="hover:text-white transition-colors">Facebook</a>
+              <a href="#" className="hover:text-white transition-colors">Email Us</a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </ErrorBoundary>
   );
 };
 
