@@ -51,6 +51,13 @@ const ModelSearchPage: React.FC<ModelSearchPageProps> = ({ initialCategory, isAg
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'All');
 
+  // Sync category when URL changes (e.g., clicking nav category links)
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
   // Use hooks for data fetching
   const { talents: filteredModels, loading: isLoading } = useTalents({
     role: activeTab,
